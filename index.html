@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Puzzle Parking Simulator - Auto Optimization</title>
+  <title>Puzzle Parking Simulator - Strictly No Long Stay at Level 1</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Plotly.js CDN -->
@@ -194,7 +194,7 @@
               }
             }
 
-            // Size Penalty (Lowered Sedan penalty at Tier 3 to 20 points)
+            // Size Penalty
             let pSize = 0;
             if (vehicleType === "SUV") {
               pSize = (r === 2) ? 0 : 100;
@@ -205,18 +205,18 @@
             // Steps Penalty
             let pSteps = Math.min(100, steps * 30 + r * 15);
 
-            // Time Penalty (Heavily penalizes T1 for long stay > 12h)
+            // Time Penalty (RE-CALIBRATED: Heavy exponential scaling to completely block T1 for >= 48h)
             let pTime = 0;
-            if (duration > 2.0) {
-              if (r === 0) {
-                pTime = Math.min(100, duration * 4); // Scaled up for 48h stay
-              } else if (r === 1) {
-                pTime = 30;
-              } else {
-                pTime = 0;
-              }
+            if (duration >= 48.0) {
+              if (r === 0) pTime = 200;  // Absolute maximum penalty for Tier 1 at 48h+
+              else if (r === 1) pTime = 40;
+              else pTime = 0;
+            } else if (duration > 2.0) {
+              if (r === 0) pTime = Math.min(150, duration * 3.5);
+              else if (r === 1) pTime = 25;
+              else pTime = 0;
             } else {
-              pTime = r * 40;
+              pTime = r * 50; // Short stay heavily penalizes upper tiers
             }
 
             let pTotal = (w1 * pSize) + (w2 * pSteps) + (w3 * pTime);
@@ -302,7 +302,7 @@
       activeTargetPos = { r: targetR, c: targetC };
       renderGrid();
 
-      // Phase 1: Horizontal Sliding
+      // Phase 1: Horizontal Sliding for clearing path
       for (let r = 0; r < targetR; r++) {
         let emptyC = gridState[r].indexOf('EMPTY_SLOT');
         if (emptyC !== -1 && emptyC !== targetC) {
@@ -324,8 +324,8 @@
         }
       }
 
-      // Phase 2: Lowering to Ground Level
-      alertBox.innerHTML = `⬇️ <b>Hạ ô thành công:</b> Đưa xe tại ${target.label} thẳng xuống mặt đất (Tầng 1)...`;
+      // Phase 2: Lowering target vehicle down to Ground Level (Tier 1)
+      alertBox.innerHTML = `⬇️ <b>Hạ ô thành công:</b> Đưa xe từ ${target.label} thẳng xuống Tầng 1...`;
       await new Promise(res => setTimeout(res, 1500));
 
       if (targetR > 0) {
@@ -333,26 +333,26 @@
         gridState[targetR][targetC] = 'EMPTY_SLOT';
       }
 
-      // Phase 3: Post-Lowering State Reset
+      // Phase 3: Set target vehicle at Ground Level to "HAS_CAR"
       gridState[0][targetC] = 'HAS_CAR';
+      activeTargetPos = { r: 0, c: targetC }; // Keep focus at T1
+      renderGrid();
 
-      // Phase 4: Re-balance Mechanical Empty Slots
-      alertBox.innerHTML = `🔄 <b>Tái cân bằng:</b> Đang đẩy ô trống từ Tầng 1 lên Tầng 2 để sẵn sàng đón xe tiếp theo...`;
-      await new Promise(res => setTimeout(res, 1200));
+      // Phase 4: Return Empty Slot Back to Original Tier (if original was Tier 2 or Tier 3)
+      if (targetR > 0) {
+        alertBox.innerHTML = `🔄 <b>Đảo vị trí:</b> Trả ô trống từ Tầng 1 trở lại Tầng ${targetR + 1} (vị trí gốc)...`;
+        await new Promise(res => setTimeout(res, 1400));
 
-      let t1EmptyC = gridState[0].indexOf('EMPTY_SLOT');
-      let t2EmptyC = gridState[1].indexOf('EMPTY_SLOT');
-
-      if (t1EmptyC !== -1 && t2EmptyC === -1) {
-        gridState[1][t1EmptyC] = 'EMPTY_SLOT';
-        gridState[0][t1EmptyC] = 'HAS_CAR';
+        // Swap Tier 1 empty/car back up to targetR
+        gridState[targetR][targetC] = 'EMPTY_SLOT';
+        gridState[0][targetC] = 'HAS_CAR';
       }
 
       activeTargetPos = null;
       renderGrid();
       updateAnalytics();
 
-      alertBox.innerHTML = `✅ <b>Hoàn tất:</b> Ô đỗ đã hạ xuống mặt đất thành công và chuyển thành trạng thái <b>CÓ XE</b>.`;
+      alertBox.innerHTML = `✅ <b>Hoàn tất:</b> Ô đỗ đã hạ xuống mặt đất, đổi thành <b>CÓ XE</b> và ô trống đã được trả về lại Tầng ${targetR + 1}.`;
       isSimulating = false;
     }
 

@@ -130,7 +130,7 @@
       ['PICKUP', 'HAS_CAR', 'HAS_CAR', 'HAS_CAR']      // Tầng 3
     ];
 
-    let activeTargetPos = null; // Tọa độ ô đang được tô màu xanh di chuyển
+    let activeTargetPos = null;
     let isSimulating = false;
 
     const STATUS_MAP = {
@@ -185,7 +185,6 @@
         for (let c = 0; c < COLS; c++) {
           if (gridState[r][c] === 'PICKUP') {
             
-            // Tính số bước trượt ngang
             let steps = 0;
             for (let rowBelow = 0; rowBelow < r; rowBelow++) {
               let emptyCol = gridState[rowBelow].indexOf('EMPTY_SLOT');
@@ -194,7 +193,6 @@
               }
             }
 
-            // Điểm phạt kích thước
             let pSize = 0;
             if (vehicleType === "SUV") {
               pSize = (r === 2) ? 0 : 100;
@@ -202,13 +200,11 @@
               pSize = (r < 2) ? 0 : 20; 
             }
 
-            // Điểm phạt số bước
             let pSteps = Math.min(100, steps * 30 + r * 15);
 
-            // Điểm phạt thời gian (TĂNG PHẠT TỐI ĐA CHO TẦNG 1 KHI ĐỖ >= 48H)
             let pTime = 0;
             if (duration >= 48.0) {
-              if (r === 0) pTime = 250;  // Phạt cực kỳ nặng Tầng 1 để loại bỏ triệt để
+              if (r === 0) pTime = 250; 
               else if (r === 1) pTime = 30;
               else pTime = 0;
             } else if (duration > 2.0) {
@@ -216,7 +212,7 @@
               else if (r === 1) pTime = 20;
               else pTime = 0;
             } else {
-              pTime = r * 50; // Đỗ ngắn hạn phạt tầng cao
+              pTime = r * 50;
             }
 
             let pTotal = (w1 * pSize) + (w2 * pSteps) + (w3 * pTime);
@@ -253,7 +249,6 @@
         startBtn.classList.add('opacity-50', 'cursor-not-allowed');
       }
 
-      // Vẽ đồ thị Plotly
       const labels = records.map(r => r.label);
       const stepsData = records.map(r => r.steps);
       const scoreData = records.map(r => r.pTotal);
@@ -293,17 +288,17 @@
 
       isSimulating = true;
       const target = records[0];
-      const origR = target.r; // Tầng gốc của ô được chọn
-      const origC = target.c; // Cột gốc của ô được chọn
+      const origR = target.r;
+      const origC = target.c;
 
       const alertBox = document.getElementById('statusAlert');
       alertBox.classList.remove('hidden');
 
-      // BƯỚC 1: Đổi ô được chọn sang màu xanh lá nổi bật
+      // 1. Highlight target slot in green
       activeTargetPos = { r: origR, c: origC };
       renderGrid();
 
-      // BƯỚC 2: Trượt ngang dọn đường ở các tầng bên dưới (Di chuyển chậm 2.5 giây)
+      // 2. Horizontal sliding steps
       for (let r = 0; r < origR; r++) {
         let emptyC = gridState[r].indexOf('EMPTY_SLOT');
         if (emptyC !== -1 && emptyC !== origC) {
@@ -314,7 +309,7 @@
             let nextC = currC + dir;
             alertBox.innerHTML = `⏳ <b>Tầng ${r + 1}:</b> Trượt dọn đường từ Cột ${nextC + 1} ➔ Cột ${currC + 1}...`;
 
-            await new Promise(res => setTimeout(res, 2500)); // Thời gian trượt chậm hơn
+            await new Promise(res => setTimeout(res, 2500));
 
             gridState[r][currC] = gridState[r][nextC];
             gridState[r][nextC] = 'EMPTY_SLOT';
@@ -325,7 +320,7 @@
         }
       }
 
-      // BƯỚC 3: Hạ ô đón xe từ tầng cao xuống Tầng 1 (Chờ 2.8 giây)
+      // 3. Lower target vehicle down to Tier 1
       alertBox.innerHTML = `⬇️ <b>Hạ ô:</b> Đưa xe từ ${target.label} thẳng xuống Tầng 1 mặt đất...`;
       await new Promise(res => setTimeout(res, 2800));
 
@@ -334,30 +329,35 @@
         gridState[origR][origC] = 'EMPTY_SLOT';
       }
 
-      // BƯỚC 4: Chuyển trạng thái ô tại Tầng 1 thành "CÓ XE"
+      // 4. Change status to HAS_CAR at Tier 1
       gridState[0][origC] = 'HAS_CAR';
-      activeTargetPos = null; // Trả màu sắc về xanh lam nhạt bình thường
+      activeTargetPos = null;
       renderGrid();
 
-      // BƯỚC 5: ĐẢO Ô TRỐNG TRỞ LẠI TẦNG CŨ (NẾU Ô XUẤT PHÁT TỪ TẦNG 2 HOẶC TẦNG 3)
-      if (origR > 0) {
-        alertBox.innerHTML = `🔄 <b>Đảo ô trống:</b> Đang thực hiện đảo vị trí, trả ô trống ở Tầng 1 trở lại Tầng ${origR + 1} (Tầng gốc)...`;
-        
-        await new Promise(res => setTimeout(res, 2500)); // Tạm dừng cho người dùng quan sát
+      // 5. AUTO-ELEVATE TO HIGHEST AVAILABLE EMPTY SLOT
+      let highestEmptyRow = -1;
+      for (let r = ROWS - 1; r > 0; r--) {
+        if (gridState[r][origC] === 'EMPTY_SLOT') {
+          highestEmptyRow = r;
+          break;
+        }
+      }
 
-        // Đẩy ô trống từ tầng 1 ngược lại tầng origR
-        gridState[origR][origC] = 'EMPTY_SLOT';
-        gridState[0][origC] = 'HAS_CAR';
-        
+      if (highestEmptyRow > 0) {
+        alertBox.innerHTML = `⬆️ Đang nâng xe lên Tầng ${highestEmptyRow + 1} (vị trí ô trống cao nhất)...`;
+        await new Promise(res => setTimeout(res, 2500));
+
+        gridState[highestEmptyRow][origC] = 'HAS_CAR';
+        gridState[0][origC] = 'EMPTY_SLOT';
         renderGrid();
       }
 
       updateAnalytics();
-      alertBox.innerHTML = `✅ <b>Hoàn tất:</b> Ô đỗ đã hạ xuống Tầng 1, đổi thành <b>CÓ XE</b> và ô trống đã được đảo trả về lại Tầng ${origR + 1}!`;
+      alertBox.innerHTML = `✅ Đã hoàn tất`;
       isSimulating = false;
     }
 
-    // Khởi chạy ban đầu
+    // Initial load
     renderGrid();
     updateAnalytics();
   </script>

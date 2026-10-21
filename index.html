@@ -253,7 +253,7 @@
                     card.className = `parking-card ${customClasses} p-3 rounded-xl flex items-center justify-between cursor-pointer select-none h-16 shadow-sm`;
                     card.onclick = () => toggleSlotState(r, c);
 
-                    const labelText = isTarget ? '🟩 Ô ĐƯỢC CHỌN' : info.label;
+                    const labelText = isTarget ? (status === 'HAS_CAR' ? '🟩 ĐÃ CẤT XE' : '🟩 Ô ĐƯỢC CHỌN') : info.label;
 
                     card.innerHTML = `
                         <div class="font-bold text-xs md:text-sm">
@@ -267,11 +267,22 @@
             }
         }
 
-        // Calculate Steps and Scores (OPTIMIZED MULTI-OBJECTIVE)
+        // Calculate Steps and Scores (DYNAMIC WEIGHTED MULTI-OBJECTIVE)
         function calculateMetrics() {
             const vType = document.getElementById('vehicleType').value;
             const duration = parseFloat(document.getElementById('stayDuration').value) || 4.0;
-            const w1 = 0.45, w2 = 0.30, w3 = 0.25;
+            
+            // Trọng số linh hoạt dựa theo loại xe và thời gian gửi
+            let w1, w2, w3;
+            if (vType === 'SUV') {
+                w1 = 0.50; w2 = 0.30; w3 = 0.20; // SUV tập trung bảo vệ cơ khí / năng lượng
+            } else {
+                if (duration > 2.0) {
+                    w1 = 0.10; w2 = 0.30; w3 = 0.60; // Sedan gửi lâu -> Ưu tiên thời gian gửi là chính
+                } else {
+                    w1 = 0.20; w2 = 0.50; w3 = 0.30; // Sedan gửi ngắn -> Ưu tiên ít bước di chuyển
+                }
+            }
 
             const results = [];
 
@@ -286,20 +297,22 @@
                             }
                         }
 
-                        // 1. Phạt Tải trọng / Độ cao (r = 0 là Tầng 1, r = 2 là Tầng 3)
-                        // SUV phạt rất nặng nếu ở tầng cao (r * 50) -> Tầng 1: 0đ, Tầng 3: 100đ
-                        // Sedan phạt nhẹ (r * 15)
-                        let pSize = (vType === 'SUV') ? (r * 50) : (r * 15);
+                        // 1. Phạt Tải trọng (r = 0 là Tầng 1, r = 2 là Tầng 3)
+                        let pSize = (vType === 'SUV') ? (r * 75) : (r * 5);
 
-                        // 2. Phạt Số bước chuyển động ngang
+                        // 2. Phạt Số bước trượt ngang
                         let pSteps = Math.min(100, steps * 25);
 
-                        // 3. Phạt Thời gian gửi
-                        // Xe gửi ngắn (<=2h): phạt tầng cao (r * 30) -> ưu tiên Tầng 1
-                        // Xe gửi dài (>2h): phạt tầng thấp ((2 - r) * 30) -> ưu tiên Tầng cao
-                        let pTime = (duration <= 2.0) ? (r * 30) : ((2 - r) * 30);
+                        // 3. Phạt Thời gian gửi (Nhân theo số giờ gửi thực tế)
+                        let pTime = 0;
+                        if (duration <= 2.0) {
+                            pTime = r * 30; // Gửi ngắn: Phạt tầng cao
+                        } else {
+                            // Gửi dài: Phạt tầng thấp rất nặng theo tỉ lệ số giờ gửi (duration / 2)
+                            pTime = (2 - r) * 40 * (duration / 2);
+                        }
 
-                        // Tổng điểm phạt (CÀNG NHỎ CÀNG TỐI ƯU)
+                        // Tổng điểm phạt (HÀM CẦN MINIMIZE)
                         let pTotal = (w1 * pSize) + (w2 * pSteps) + (w3 * pTime);
 
                         results.push({
@@ -388,7 +401,7 @@
             }
         }
 
-        // Automatic Slow Simulation
+        // Simulation Loop (ONLY TARGET SLOT RETURNS TO ORIGINAL LEVEL)
         async function startAutoOptimalSimulation() {
             if (isSimulating) return;
 
@@ -411,7 +424,7 @@
             const stepsQueue = [];
             const tempGrid = JSON.parse(JSON.stringify(gridState));
 
-            // Step 1: Slide lower tier empty slots horizontally to clear column
+            // BƯỚC 1: Slide các ô trống tầng dưới sang vị trí targetC để dọn đường
             for (let r = 0; r < targetR; r++) {
                 const emptyC = tempGrid[r].findIndex(st => st === 'EMPTY');
                 if (emptyC !== -1 && emptyC !== targetC) {
@@ -433,7 +446,7 @@
                 }
             }
 
-            // Step 2: Vertical lowering steps down to Ground level (Tier 1)
+            // BƯỚC 2: Hạ ô targetR xuống Tầng 1
             if (targetR > 0) {
                 for (let rLevel = targetR; rLevel > 0; rLevel--) {
                     stepsQueue.push({
@@ -441,22 +454,35 @@
                         fromR: rLevel,
                         toR: rLevel - 1,
                         c: targetC,
-                        desc: `Tầng ${rLevel + 1}: Hạ khung nâng từ Tầng ${rLevel + 1} ➔ Tầng ${rLevel} (Cột ${targetC + 1})`
+                        desc: `Hạ khay nâng từ Tầng ${rLevel + 1} ➔ Tầng ${rLevel} (Cột ${targetC + 1})`
                     });
                 }
-            } else {
-                stepsQueue.push({
-                    type: 'LOWER',
-                    fromR: 0,
-                    toR: 0,
-                    c: targetC,
-                    desc: `Tầng 1: Xe đang ở mặt đất, sẵn sàng nhận xe!`
-                });
+            }
+
+            // BƯỚC 3: Đổi trạng thái tại Tầng 1 thành "CÓ XE"
+            stepsQueue.push({
+                type: 'RECEIVE_CAR',
+                r: 0,
+                c: targetC,
+                desc: `Nạp xe thành công vào khay đỗ tại Tầng 1 - Cột ${targetC + 1}!`
+            });
+
+            // BƯỚC 4: CHỈ NÂNG Ô ĐƯỢC CHỌN TRỞ LẠI TẦNG BAN ĐẦU (targetR)
+            if (targetR > 0) {
+                for (let rLevel = 0; rLevel < targetR; rLevel++) {
+                    stepsQueue.push({
+                        type: 'RAISE',
+                        fromR: rLevel,
+                        toR: rLevel + 1,
+                        c: targetC,
+                        desc: `Nâng khay đã có xe trở lại Tầng ${rLevel + 2} (Cột ${targetC + 1})`
+                    });
+                }
             }
 
             const totalSteps = stepsQueue.length;
 
-            // Execute Animation Queue
+            // Chạy chuỗi chuyển động
             for (let i = 0; i < totalSteps; i++) {
                 const step = stepsQueue[i];
                 updateStatusText(step.desc, i + 1, totalSteps);
@@ -472,35 +498,49 @@
                     activeMovingPos = { r: step.r, c: step.toC };
                     renderGrid();
                 } else if (step.type === 'LOWER') {
-                    if (step.fromR !== step.toR) {
-                        activeMovingPos = { r: step.fromR, c: step.c };
-                        renderGrid();
-                        await new Promise(res => setTimeout(res, simSpeed * 0.5));
+                    activeMovingPos = { r: step.fromR, c: step.c };
+                    renderGrid();
+                    await new Promise(res => setTimeout(res, simSpeed * 0.5));
 
-                        const currentType = gridState[step.fromR][step.c];
-                        gridState[step.fromR][step.c] = 'EMPTY';
-                        gridState[step.toR][step.c] = currentType;
-                        
-                        activeTargetPos = { r: step.toR, c: step.c };
-                        activeMovingPos = { r: step.toR, c: step.c };
-                        renderGrid();
-                    }
+                    const currentType = gridState[step.fromR][step.c];
+                    gridState[step.fromR][step.c] = 'EMPTY';
+                    gridState[step.toR][step.c] = currentType;
+                    
+                    activeTargetPos = { r: step.toR, c: step.c };
+                    activeMovingPos = { r: step.toR, c: step.c };
+                    renderGrid();
+                } else if (step.type === 'RECEIVE_CAR') {
+                    gridState[0][step.c] = 'HAS_CAR';
+                    activeTargetPos = { r: 0, c: step.c };
+                    renderGrid();
+                    updateAnalyticsAndCharts();
+                    await new Promise(res => setTimeout(res, simSpeed * 0.8));
+                } else if (step.type === 'RAISE') {
+                    activeMovingPos = { r: step.fromR, c: step.c };
+                    renderGrid();
+                    await new Promise(res => setTimeout(res, simSpeed * 0.5));
+
+                    const currentType = gridState[step.fromR][step.c];
+                    gridState[step.fromR][step.c] = 'EMPTY';
+                    gridState[step.toR][step.c] = currentType;
+                    
+                    activeTargetPos = { r: step.toR, c: step.c };
+                    activeMovingPos = { r: step.toR, c: step.c };
+                    renderGrid();
                 }
 
                 updateAnalyticsAndCharts();
                 await new Promise(res => setTimeout(res, simSpeed * 0.5));
             }
 
-            // COMPLETION
-            gridState[0][targetC] = 'HAS_CAR';
-            
+            // HOÀN TẤT
             activeTargetPos = null;
             activeMovingPos = null;
             
             renderGrid();
             updateAnalyticsAndCharts();
 
-            updateStatusText(`🎉 Hoàn tất! Ô tại Tầng 1 - Cột ${targetC + 1} đã tiếp đất và chuyển sang trạng thái CÓ XE.`);
+            updateStatusText(`🎉 Hoàn tất! Ô đỗ đã cất xe an toàn và đưa khay về đúng Tầng ${targetR + 1}.`);
 
             isSimulating = false;
             btn.disabled = false;

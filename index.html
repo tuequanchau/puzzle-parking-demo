@@ -1,503 +1,511 @@
-    /* Card Base Styles */
-    .parking-card {
-        transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        position: relative;
-        user-select: none;
-    }
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bãi đỗ xe tự động Puzzle Parking</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc;
+        }
 
-    .parking-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    }
+        /* Card Base Styles */
+        .parking-card {
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            user-select: none;
+        }
 
-    /* Pastel Color Palette */
-    .card-has-car {
-        background-color: #E8F1FF; /* Xanh dương nhạt */
-        color: #1A56B0;
-        border: 1.5px solid #BFDBFE;
-    }
+        .parking-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
 
-    .card-pickup {
-        background-color: #FEFBE8; /* Vàng nhạt */
-        color: #855800;
-        border: 1.5px solid #FEF08A;
-    }
+        /* Pastel Color Palette */
+        .card-has-car {
+            background-color: #E8F1FF; /* Xanh dương nhạt */
+            color: #1A56B0;
+            border: 1.5px solid #BFDBFE;
+        }
 
-    .card-empty-space {
-        background-color: #FFFFFF; /* Màu trắng nguyên bản */
-        color: #64748B;
-        border: 1.5px dashed #CBD5E1;
-    }
+        .card-pickup {
+            background-color: #FEFBE8; /* Vàng nhạt */
+            color: #855800;
+            border: 1.5px solid #FEF08A;
+        }
 
-    /* Active Green Highlight when moving */
-    .card-active-target {
-        background-color: #27ae60 !important; /* Xanh lá cây rực rỡ */
-        color: #FFFFFF !important;
-        border: 2px solid #1e8449 !important;
-        box-shadow: 0 0 15px rgba(39, 174, 96, 0.5);
-        animation: pulse-green 2.8s infinite ease-in-out;
-        z-index: 20;
-    }
+        .card-empty-space {
+            background-color: #FFFFFF; /* Màu trắng nguyên bản */
+            color: #64748B;
+            border: 1.5px dashed #CBD5E1;
+        }
 
-    .card-animating-slide {
-        animation: pulse-slide 2.8s infinite ease-in-out;
-        z-index: 10;
-        border-color: #3B82F6 !important;
-    }
+        /* Active Green Highlight when moving */
+        .card-active-target {
+            background-color: #27ae60 !important; /* Xanh lá cây rực rỡ */
+            color: #FFFFFF !important;
+            border: 2px solid #1e8449 !important;
+            box-shadow: 0 0 15px rgba(39, 174, 96, 0.5);
+            animation: pulse-green 2.8s infinite ease-in-out;
+            z-index: 20;
+        }
 
-    @keyframes pulse-green {
-        0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.6); }
-        50% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(39, 174, 96, 0); }
-        100% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
-    }
+        .card-animating-slide {
+            animation: pulse-slide 2.8s infinite ease-in-out;
+            z-index: 10;
+            border-color: #3B82F6 !important;
+        }
 
-    @keyframes pulse-slide {
-        0% { transform: scale(0.98); }
-        50% { transform: scale(1.02); }
-        100% { transform: scale(0.98); }
-    }
-</style>
+        @keyframes pulse-green {
+            0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.6); }
+            50% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(39, 174, 96, 0); }
+            100% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
+        }
 
+        @keyframes pulse-slide {
+            0% { transform: scale(0.98); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(0.98); }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased p-3 md:p-6 min-h-screen">
 
-<div class="max-w-6xl mx-auto space-y-4">
-    
-    <!-- HEADER & CONTROLS -->
-    <header class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-            <span class="bg-blue-600 text-white p-2 rounded-xl text-lg flex items-center justify-center w-9 h-9 shadow-sm">
-                <i class="fa-solid fa-square-parking"></i>
-            </span>
-            <div>
-                <h1 class="text-lg font-bold text-slate-900 leading-tight">Mô phỏng Bãi đỗ xe Puzzle (3×4)</h1>
-            </div>
-        </div>
-
-        <!-- Vehicle Attributes -->
-        <div class="flex items-center gap-3 bg-slate-50 p-1.5 px-3 rounded-xl border border-slate-200">
-            <div class="flex items-center gap-2">
-                <span class="text-xs font-semibold text-slate-500">Loại xe:</span>
-                <select id="vehicleType" class="bg-white border border-slate-300 text-slate-800 text-xs rounded-lg p-1.5 font-semibold focus:outline-none">
-                    <option value="Sedan" selected>Sedan</option>
-                    <option value="SUV">SUV</option>
-                </select>
-            </div>
-            <div class="h-4 w-[1px] bg-slate-300"></div>
-            <div class="flex items-center gap-2">
-                <span class="text-xs font-semibold text-slate-500">Thời gian gửi:</span>
-                <input type="number" id="stayDuration" value="4" min="0.5" step="0.5" class="w-12 bg-white border border-slate-300 text-slate-800 text-xs rounded-lg p-1.5 font-semibold text-center focus:outline-none">
-                <span class="text-xs font-medium text-slate-500">h</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- TOP SECTION: MATRIX & START BUTTON -->
-    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+    <div class="max-w-6xl mx-auto space-y-4">
         
-        <!-- Auto-detected status & execution trigger -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <div class="flex items-center gap-3 px-1">
-                <span class="p-2 bg-emerald-500 text-white rounded-lg text-sm flex items-center justify-center w-8 h-8 shadow-sm">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <!-- HEADER & CONTROLS -->
+        <header class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="bg-blue-600 text-white p-2 rounded-xl text-lg flex items-center justify-center w-9 h-9 shadow-sm">
+                    <i class="fa-solid fa-square-parking"></i>
                 </span>
                 <div>
-                    <div class="text-[10px] font-extrabold uppercase text-emerald-600 tracking-wider">Ô tối ưu tự động phát hiện</div>
-                    <div id="autoOptimalText" class="font-bold text-sm text-slate-800">Đang tính toán...</div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">Mô phỏng Bãi đỗ xe Puzzle (3×4)</h1>
                 </div>
             </div>
 
-            <!-- Single Click Action -->
-            <button id="btnAutoStartSim" onclick="startAutoOptimalSimulation()" class="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
-                <i class="fa-solid fa-play"></i> Bắt đầu di chuyển
-            </button>
-        </div>
+            <!-- Vehicle Attributes -->
+            <div class="flex items-center gap-3 bg-slate-50 p-1.5 px-3 rounded-xl border border-slate-200">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-slate-500">Loại xe:</span>
+                    <select id="vehicleType" class="bg-white border border-slate-300 text-slate-800 text-xs rounded-lg p-1.5 font-semibold focus:outline-none">
+                        <option value="Sedan" selected>Sedan</option>
+                        <option value="SUV">SUV (Xe nặng)</option>
+                    </select>
+                </div>
+                <div class="h-4 w-[1px] bg-slate-300"></div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-slate-500">Thời gian gửi:</span>
+                    <input type="number" id="stayDuration" value="4" min="0.5" step="0.5" class="w-12 bg-white border border-slate-300 text-slate-800 text-xs rounded-lg p-1.5 font-semibold text-center focus:outline-none">
+                    <span class="text-xs font-medium text-slate-500">h</span>
+                </div>
+            </div>
+        </header>
 
-        <!-- 3x4 Grid Matrix -->
-        <div id="parkingGrid" class="grid grid-rows-3 gap-2.5 bg-slate-100 p-3 rounded-xl border border-slate-200">
-            <!-- Rendered dynamically -->
-        </div>
-
-        <!-- Simulation Status Bar -->
-        <div id="simStatusBox" class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs text-slate-600">
-            <span id="simStatusText" class="font-medium flex items-center gap-2">
-                <i class="fa-solid fa-circle-info text-blue-500"></i> Nhấp vào ô để thay đổi trạng thái. Nhấn 'Bắt đầu di chuyển' để thực hiện.
-            </span>
-            <span id="simStepBadge" class="hidden px-2 py-0.5 bg-blue-100 text-blue-800 font-bold rounded-full text-[11px]">
-                Bước 0/0
-            </span>
-        </div>
-    </div>
-
-    <!-- BOTTOM SECTION: PLOTLY CHARTS -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Chart 1: Steps -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
-                <i class="fa-solid fa-chart-simple text-blue-500"></i>
-                1. Số bước di chuyển
-            </h3>
-            <div id="chartSteps" class="w-full h-52"></div>
-        </div>
-
-        <!-- Chart 2: Objective Function -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
-                <i class="fa-solid fa-chart-pie text-emerald-500"></i>
-                2. Hàm mục tiêu
-            </h3>
-            <div id="chartObjective" class="w-full h-52"></div>
-        </div>
-    </div>
-
-</div>
-
-<!-- Application Script -->
-<script>
-    const ROWS = 3;
-    const COLS = 4;
-    
-    // SLOW ANIMATION SPEED (~2.8s per step)
-    const simSpeed = 2800; 
-    let isSimulating = false;
-    let bestOptimalSlot = null;
-
-    // Active highlight pointers
-    let activeTargetPos = null;
-    let activeMovingPos = null;
-
-    // Initial 3x4 Matrix (Tier 1 at bottom, Tier 3 at top)
-    let gridState = [
-        ['HAS_CAR', 'EMPTY', 'HAS_CAR', 'HAS_CAR'],    // Tier 1 (Ground)
-        ['HAS_CAR', 'EMPTY', 'PICKUP', 'HAS_CAR'],     // Tier 2
-        ['HAS_CAR', 'HAS_CAR', 'HAS_CAR', 'PICKUP']     // Tier 3
-    ];
-
-    const STATUS_DETAILS = {
-        'HAS_CAR': {
-            label: '🚘 CÓ XE',
-            cssClass: 'card-has-car',
-            next: 'PICKUP'
-        },
-        'PICKUP': {
-            label: '🟨 ĐÓN XE',
-            cssClass: 'card-pickup',
-            next: 'EMPTY'
-        },
-        'EMPTY': {
-            label: '⬜ Ô TRỐNG',
-            cssClass: 'card-empty-space',
-            next: 'HAS_CAR'
-        }
-    };
-
-    document.addEventListener('DOMContentLoaded', () => {
-        renderGrid();
-        updateAnalyticsAndCharts();
-        
-        document.getElementById('vehicleType').addEventListener('change', updateAnalyticsAndCharts);
-        document.getElementById('stayDuration').addEventListener('input', updateAnalyticsAndCharts);
-    });
-
-    // Click slot to toggle state
-    function toggleSlotState(r, c) {
-        if (isSimulating) return;
-        const current = gridState[r][c];
-        gridState[r][c] = STATUS_DETAILS[current].next;
-        renderGrid();
-        updateAnalyticsAndCharts();
-    }
-
-    // Render Grid
-    function renderGrid() {
-        const container = document.getElementById('parkingGrid');
-        container.innerHTML = '';
-
-        for (let r = ROWS - 1; r >= 0; r--) {
-            const rowDiv = document.createElement('div');
-            rowDiv.className = 'grid grid-cols-4 gap-2.5';
-
-            for (let c = 0; c < COLS; c++) {
-                const status = gridState[r][c];
-                const info = STATUS_DETAILS[status];
-
-                const isTarget = activeTargetPos && activeTargetPos.r === r && activeTargetPos.c === c;
-                const isMoving = activeMovingPos && activeMovingPos.r === r && activeMovingPos.c === c;
-
-                const card = document.createElement('div');
-                let customClasses = info.cssClass;
-                
-                if (isTarget) {
-                    customClasses = 'card-active-target'; // Active Green (#27ae60)
-                } else if (isMoving) {
-                    customClasses += ' card-animating-slide';
-                }
-
-                card.className = `parking-card ${customClasses} p-3 rounded-xl flex items-center justify-between cursor-pointer select-none h-16 shadow-sm`;
-                card.onclick = () => toggleSlotState(r, c);
-
-                const labelText = isTarget ? '🟩 Ô ĐƯỢC CHỌN' : info.label;
-
-                card.innerHTML = `
-                    <div class="font-bold text-xs md:text-sm">
-                        ${labelText}
+        <!-- TOP SECTION: MATRIX & START BUTTON -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            
+            <!-- Auto-detected status & execution trigger -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div class="flex items-center gap-3 px-1">
+                    <span class="p-2 bg-emerald-500 text-white rounded-lg text-sm flex items-center justify-center w-8 h-8 shadow-sm">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </span>
+                    <div>
+                        <div class="text-[10px] font-extrabold uppercase text-emerald-600 tracking-wider">Ô tối ưu tự động phát hiện</div>
+                        <div id="autoOptimalText" class="font-bold text-sm text-slate-800">Đang tính toán...</div>
                     </div>
-                    <span class="text-[10px] font-extrabold uppercase opacity-60">T${r + 1}-C${c + 1}</span>
-                `;
-                rowDiv.appendChild(card);
+                </div>
+
+                <!-- Single Click Action -->
+                <button id="btnAutoStartSim" onclick="startAutoOptimalSimulation()" class="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play"></i> Bắt đầu di chuyển
+                </button>
+            </div>
+
+            <!-- 3x4 Grid Matrix -->
+            <div id="parkingGrid" class="grid grid-rows-3 gap-2.5 bg-slate-100 p-3 rounded-xl border border-slate-200">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Simulation Status Bar -->
+            <div id="simStatusBox" class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs text-slate-600">
+                <span id="simStatusText" class="font-medium flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-blue-500"></i> Nhấp vào ô để thay đổi trạng thái. Nhấn 'Bắt đầu di chuyển' để thực hiện.
+                </span>
+                <span id="simStepBadge" class="hidden px-2 py-0.5 bg-blue-100 text-blue-800 font-bold rounded-full text-[11px]">
+                    Bước 0/0
+                </span>
+            </div>
+        </div>
+
+        <!-- BOTTOM SECTION: PLOTLY CHARTS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Chart 1: Steps -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-simple text-blue-500"></i>
+                    1. Số bước di chuyển
+                </h3>
+                <div id="chartSteps" class="w-full h-52"></div>
+            </div>
+
+            <!-- Chart 2: Objective Function -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-emerald-500"></i>
+                    2. Hàm mục tiêu (Điểm phạt)
+                </h3>
+                <div id="chartObjective" class="w-full h-52"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        const ROWS = 3;
+        const COLS = 4;
+        
+        // SLOW ANIMATION SPEED (~2.8s per step)
+        const simSpeed = 2800; 
+        let isSimulating = false;
+        let bestOptimalSlot = null;
+
+        // Active highlight pointers
+        let activeTargetPos = null;
+        let activeMovingPos = null;
+
+        // Initial 3x4 Matrix (Tier 1 at bottom, Tier 3 at top)
+        let gridState = [
+            ['HAS_CAR', 'EMPTY', 'HAS_CAR', 'HAS_CAR'],    // Tier 1 (Ground)
+            ['HAS_CAR', 'EMPTY', 'PICKUP', 'HAS_CAR'],     // Tier 2
+            ['HAS_CAR', 'HAS_CAR', 'HAS_CAR', 'PICKUP']     // Tier 3
+        ];
+
+        const STATUS_DETAILS = {
+            'HAS_CAR': {
+                label: '🚘 CÓ XE',
+                cssClass: 'card-has-car',
+                next: 'PICKUP'
+            },
+            'PICKUP': {
+                label: '🟨 ĐÓN XE',
+                cssClass: 'card-pickup',
+                next: 'EMPTY'
+            },
+            'EMPTY': {
+                label: '⬜ Ô TRỐNG',
+                cssClass: 'card-empty-space',
+                next: 'HAS_CAR'
             }
-            container.appendChild(rowDiv);
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderGrid();
+            updateAnalyticsAndCharts();
+            
+            document.getElementById('vehicleType').addEventListener('change', updateAnalyticsAndCharts);
+            document.getElementById('stayDuration').addEventListener('input', updateAnalyticsAndCharts);
+        });
+
+        // Click slot to toggle state
+        function toggleSlotState(r, c) {
+            if (isSimulating) return;
+            const current = gridState[r][c];
+            gridState[r][c] = STATUS_DETAILS[current].next;
+            renderGrid();
+            updateAnalyticsAndCharts();
         }
-    }
 
-    // Calculate Steps and Scores
-    function calculateMetrics() {
-        const vType = document.getElementById('vehicleType').value;
-        const duration = parseFloat(document.getElementById('stayDuration').value) || 4.0;
-        const w1 = 0.45, w2 = 0.35, w3 = 0.20;
+        // Render Grid
+        function renderGrid() {
+            const container = document.getElementById('parkingGrid');
+            container.innerHTML = '';
 
-        const results = [];
+            for (let r = ROWS - 1; r >= 0; r--) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'grid grid-cols-4 gap-2.5';
 
-        for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c < COLS; c++) {
-                if (gridState[r][c] === 'PICKUP') {
-                    let steps = 0;
-                    for (let rowBelow = 0; rowBelow < r; rowBelow++) {
-                        const emptyCol = gridState[rowBelow].findIndex(st => st === 'EMPTY');
-                        if (emptyCol !== -1) {
-                            steps += Math.abs(c - emptyCol);
+                for (let c = 0; c < COLS; c++) {
+                    const status = gridState[r][c];
+                    const info = STATUS_DETAILS[status];
+
+                    const isTarget = activeTargetPos && activeTargetPos.r === r && activeTargetPos.c === c;
+                    const isMoving = activeMovingPos && activeMovingPos.r === r && activeMovingPos.c === c;
+
+                    const card = document.createElement('div');
+                    let customClasses = info.cssClass;
+                    
+                    if (isTarget) {
+                        customClasses = 'card-active-target'; // Active Green (#27ae60)
+                    } else if (isMoving) {
+                        customClasses += ' card-animating-slide';
+                    }
+
+                    card.className = `parking-card ${customClasses} p-3 rounded-xl flex items-center justify-between cursor-pointer select-none h-16 shadow-sm`;
+                    card.onclick = () => toggleSlotState(r, c);
+
+                    const labelText = isTarget ? '🟩 Ô ĐƯỢC CHỌN' : info.label;
+
+                    card.innerHTML = `
+                        <div class="font-bold text-xs md:text-sm">
+                            ${labelText}
+                        </div>
+                        <span class="text-[10px] font-extrabold uppercase opacity-60">T${r + 1}-C${c + 1}</span>
+                    `;
+                    rowDiv.appendChild(card);
+                }
+                container.appendChild(rowDiv);
+            }
+        }
+
+        // Calculate Steps and Scores (OPTIMIZED MULTI-OBJECTIVE)
+        function calculateMetrics() {
+            const vType = document.getElementById('vehicleType').value;
+            const duration = parseFloat(document.getElementById('stayDuration').value) || 4.0;
+            const w1 = 0.45, w2 = 0.30, w3 = 0.25;
+
+            const results = [];
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (gridState[r][c] === 'PICKUP') {
+                        let steps = 0;
+                        for (let rowBelow = 0; rowBelow < r; rowBelow++) {
+                            const emptyCol = gridState[rowBelow].findIndex(st => st === 'EMPTY');
+                            if (emptyCol !== -1) {
+                                steps += Math.abs(c - emptyCol);
+                            }
                         }
+
+                        // 1. Phạt Tải trọng / Độ cao (r = 0 là Tầng 1, r = 2 là Tầng 3)
+                        // SUV phạt rất nặng nếu ở tầng cao (r * 50) -> Tầng 1: 0đ, Tầng 3: 100đ
+                        // Sedan phạt nhẹ (r * 15)
+                        let pSize = (vType === 'SUV') ? (r * 50) : (r * 15);
+
+                        // 2. Phạt Số bước chuyển động ngang
+                        let pSteps = Math.min(100, steps * 25);
+
+                        // 3. Phạt Thời gian gửi
+                        // Xe gửi ngắn (<=2h): phạt tầng cao (r * 30) -> ưu tiên Tầng 1
+                        // Xe gửi dài (>2h): phạt tầng thấp ((2 - r) * 30) -> ưu tiên Tầng cao
+                        let pTime = (duration <= 2.0) ? (r * 30) : ((2 - r) * 30);
+
+                        // Tổng điểm phạt (CÀNG NHỎ CÀNG TỐI ƯU)
+                        let pTotal = (w1 * pSize) + (w2 * pSteps) + (w3 * pTime);
+
+                        results.push({
+                            label: `T${r + 1}-C${c + 1}`,
+                            row: r,
+                            col: c,
+                            steps: steps,
+                            pTotal: Math.round(pTotal * 10) / 10
+                        });
                     }
-
-                    // SỬA LẠI THUẬT TOÁN TỐI ƯU TẢI TRỌNG VÀ THỜI GIAN:
-                    // 1. Tải trọng (pSize / Energy penalty): 
-                    // Xe nặng (SUV) phải chịu phạt RẤT CAO nếu đỗ ở tầng trên (r = 1, 2) do tốn điện năng nâng hạ m*g*h.
-                    // Xe nhỏ (Sedan) có mức phạt tăng nhẹ theo độ cao.
-                    let pSize = 0;
-                    if (vType === 'SUV') {
-                        pSize = r * 50; // T1 (r=0): 0pt | T2 (r=1): 50pt | T3 (r=2): 100pt -> Ưu tiên tuyệt đối Tầng 1
-                    } else {
-                        pSize = r * 15; // Sedan chịu phạt ít hơn nhiều khi ở tầng cao
-                    }
-
-                    // 2. Số bước chuyển (pSteps)
-                    let pSteps = Math.min(100, steps * 25 + r * 10);
-
-                    // 3. Thời gian gửi (pTime):
-                    // Gửi ngắn hạn (<= 2h): Nên đỗ tầng thấp (r=0, 1) để lấy nhanh. Tầng cao r=2 phạt điểm.
-                    // Gửi dài hạn (> 2h): Ưu tiên tầng cao (r=2) để đỡ chắn xe khác. Tầng thấp r=0 bị phạt điểm.
-                    let pTime = 0;
-                    if (duration <= 2.0) {
-                        pTime = r * 40; 
-                    } else {
-                        pTime = (2 - r) * 35; 
-                    }
-
-                    let pTotal = (w1 * pSize) + (w2 * pSteps) + (w3 * pTime);
-
-                    results.push({
-                        label: `T${r + 1}-C${c + 1}`,
-                        row: r,
-                        col: c,
-                        steps: steps,
-                        pTotal: Math.round(pTotal * 10) / 10
-                    });
                 }
             }
+
+            return results;
         }
 
-        return results;
-    }
+        // Update Plotly Charts
+        function updateAnalyticsAndCharts() {
+            const data = calculateMetrics();
 
-    // Update Plotly Charts
-    function updateAnalyticsAndCharts() {
-        const data = calculateMetrics();
-
-        if (data.length === 0) {
-            bestOptimalSlot = null;
-            document.getElementById('autoOptimalText').textContent = "Không có ô ĐÓN XE";
-            Plotly.purge('chartSteps');
-            Plotly.purge('chartObjective');
-            return;
-        }
-
-        data.sort((a, b) => a.pTotal - b.pTotal);
-        bestOptimalSlot = data[0];
-
-        document.getElementById('autoOptimalText').textContent = 
-            `Tầng ${bestOptimalSlot.row + 1} - Cột ${bestOptimalSlot.col + 1} (Điểm: ${bestOptimalSlot.pTotal} | ${bestOptimalSlot.steps} bước)`;
-
-        const labels = data.map(d => d.label);
-        const stepsValues = data.map(d => d.steps);
-        const scoreValues = data.map(d => d.pTotal);
-
-        // Chart 1: Steps
-        Plotly.newPlot('chartSteps', [{
-            x: labels,
-            y: stepsValues,
-            type: 'bar',
-            text: stepsValues.map(String),
-            textposition: 'auto',
-            marker: { color: '#3B82F6', cornerradius: 6 }
-        }], {
-            margin: { t: 10, b: 25, l: 25, r: 10 },
-            yaxis: { zeroline: false },
-            xaxis: { title: '' },
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            plot_bgcolor: 'rgba(0,0,0,0)'
-        }, { responsive: true, displayModeBar: false });
-
-        // Chart 2: Objective Function
-        Plotly.newPlot('chartObjective', [{
-            x: labels,
-            y: scoreValues,
-            type: 'bar',
-            text: scoreValues.map(String),
-            textposition: 'auto',
-            marker: { 
-                color: scoreValues.map(s => s === bestOptimalSlot.pTotal ? '#10B981' : '#F87171'),
-                cornerradius: 6 
+            if (data.length === 0) {
+                bestOptimalSlot = null;
+                document.getElementById('autoOptimalText').textContent = "Không có ô ĐÓN XE";
+                Plotly.purge('chartSteps');
+                Plotly.purge('chartObjective');
+                return;
             }
-        }], {
-            margin: { t: 10, b: 25, l: 25, r: 10 },
-            yaxis: { zeroline: false },
-            xaxis: { title: '' },
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            plot_bgcolor: 'rgba(0,0,0,0)'
-        }, { responsive: true, displayModeBar: false });
-    }
 
-    function updateStatusText(message, stepIndex = 0, totalSteps = 0) {
-        const txt = document.getElementById('simStatusText');
-        const badge = document.getElementById('simStepBadge');
+            data.sort((a, b) => a.pTotal - b.pTotal);
+            bestOptimalSlot = data[0];
 
-        if (totalSteps > 0) {
-            badge.classList.remove('hidden');
-            badge.textContent = `Bước ${stepIndex}/${totalSteps}`;
-            txt.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-blue-600"></i> ${message}`;
-        } else {
-            badge.classList.add('hidden');
-            txt.innerHTML = `<i class="fa-solid fa-circle-info text-blue-500"></i> ${message}`;
+            document.getElementById('autoOptimalText').textContent = 
+                `Tầng ${bestOptimalSlot.row + 1} - Cột ${bestOptimalSlot.col + 1} (Điểm phạt: ${bestOptimalSlot.pTotal} | ${bestOptimalSlot.steps} bước)`;
+
+            const labels = data.map(d => d.label);
+            const stepsValues = data.map(d => d.steps);
+            const scoreValues = data.map(d => d.pTotal);
+
+            // Chart 1: Steps
+            Plotly.newPlot('chartSteps', [{
+                x: labels,
+                y: stepsValues,
+                type: 'bar',
+                text: stepsValues.map(String),
+                textposition: 'auto',
+                marker: { color: '#3B82F6', cornerradius: 6 }
+            }], {
+                margin: { t: 10, b: 25, l: 25, r: 10 },
+                yaxis: { zeroline: false },
+                xaxis: { title: '' },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)'
+            }, { responsive: true, displayModeBar: false });
+
+            // Chart 2: Objective Function
+            Plotly.newPlot('chartObjective', [{
+                x: labels,
+                y: scoreValues,
+                type: 'bar',
+                text: scoreValues.map(String),
+                textposition: 'auto',
+                marker: { 
+                    color: scoreValues.map(s => s === bestOptimalSlot.pTotal ? '#10B981' : '#F87171'),
+                    cornerradius: 6 
+                }
+            }], {
+                margin: { t: 10, b: 25, l: 25, r: 10 },
+                yaxis: { zeroline: false },
+                xaxis: { title: '' },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)'
+            }, { responsive: true, displayModeBar: false });
         }
-    }
 
-    // Automatic Slow Simulation
-    async function startAutoOptimalSimulation() {
-        if (isSimulating) return;
+        function updateStatusText(message, stepIndex = 0, totalSteps = 0) {
+            const txt = document.getElementById('simStatusText');
+            const badge = document.getElementById('simStepBadge');
 
-        if (!bestOptimalSlot) {
-            alert("Vui lòng nhấp đặt ít nhất 1 ô thành '🟨 ĐÓN XE'.");
-            return;
+            if (totalSteps > 0) {
+                badge.classList.remove('hidden');
+                badge.textContent = `Bước ${stepIndex}/${totalSteps}`;
+                txt.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-blue-600"></i> ${message}`;
+            } else {
+                badge.classList.add('hidden');
+                txt.innerHTML = `<i class="fa-solid fa-circle-info text-blue-500"></i> ${message}`;
+            }
         }
 
-        const targetR = bestOptimalSlot.row;
-        const targetC = bestOptimalSlot.col;
+        // Automatic Slow Simulation
+        async function startAutoOptimalSimulation() {
+            if (isSimulating) return;
 
-        isSimulating = true;
-        activeTargetPos = { r: targetR, c: targetC }; // Turn target active GREEN (#27ae60)
-        renderGrid();
+            if (!bestOptimalSlot) {
+                alert("Vui lòng nhấp đặt ít nhất 1 ô thành '🟨 ĐÓN XE'.");
+                return;
+            }
 
-        const btn = document.getElementById('btnAutoStartSim');
-        btn.disabled = true;
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
+            const targetR = bestOptimalSlot.row;
+            const targetC = bestOptimalSlot.col;
 
-        const stepsQueue = [];
-        const tempGrid = JSON.parse(JSON.stringify(gridState));
+            isSimulating = true;
+            activeTargetPos = { r: targetR, c: targetC };
+            renderGrid();
 
-        // Step 1: Slide lower tier empty slots horizontally to clear column
-        for (let r = 0; r < targetR; r++) {
-            const emptyC = tempGrid[r].findIndex(st => st === 'EMPTY');
-            if (emptyC !== -1 && emptyC !== targetC) {
-                const dir = emptyC < targetC ? 1 : -1;
-                let currC = emptyC;
-                while (currC !== targetC) {
-                    const nextC = currC + dir;
+            const btn = document.getElementById('btnAutoStartSim');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const stepsQueue = [];
+            const tempGrid = JSON.parse(JSON.stringify(gridState));
+
+            // Step 1: Slide lower tier empty slots horizontally to clear column
+            for (let r = 0; r < targetR; r++) {
+                const emptyC = tempGrid[r].findIndex(st => st === 'EMPTY');
+                if (emptyC !== -1 && emptyC !== targetC) {
+                    const dir = emptyC < targetC ? 1 : -1;
+                    let currC = emptyC;
+                    while (currC !== targetC) {
+                        const nextC = currC + dir;
+                        stepsQueue.push({
+                            type: 'SLIDE',
+                            r: r,
+                            fromC: nextC,
+                            toC: currC,
+                            desc: `Tầng ${r + 1}: Trượt ô từ Cột ${nextC + 1} ➔ Cột ${currC + 1}`
+                        });
+                        tempGrid[r][currC] = tempGrid[r][nextC];
+                        tempGrid[r][nextC] = 'EMPTY';
+                        currC = nextC;
+                    }
+                }
+            }
+
+            // Step 2: Vertical lowering steps down to Ground level (Tier 1)
+            if (targetR > 0) {
+                for (let rLevel = targetR; rLevel > 0; rLevel--) {
                     stepsQueue.push({
-                        type: 'SLIDE',
-                        r: r,
-                        fromC: nextC,
-                        toC: currC,
-                        desc: `Tầng ${r + 1}: Trượt ô từ Cột ${nextC + 1} ➔ Cột ${currC + 1}`
+                        type: 'LOWER',
+                        fromR: rLevel,
+                        toR: rLevel - 1,
+                        c: targetC,
+                        desc: `Tầng ${rLevel + 1}: Hạ khung nâng từ Tầng ${rLevel + 1} ➔ Tầng ${rLevel} (Cột ${targetC + 1})`
                     });
-                    tempGrid[r][currC] = tempGrid[r][nextC];
-                    tempGrid[r][nextC] = 'EMPTY';
-                    currC = nextC;
                 }
-            }
-        }
-
-        // Step 2: Vertical lowering steps down to Ground level (Tier 1)
-        if (targetR > 0) {
-            for (let rLevel = targetR; rLevel > 0; rLevel--) {
+            } else {
                 stepsQueue.push({
                     type: 'LOWER',
-                    fromR: rLevel,
-                    toR: rLevel - 1,
+                    fromR: 0,
+                    toR: 0,
                     c: targetC,
-                    desc: `Tầng ${rLevel + 1}: Hạ khung nâng từ Tầng ${rLevel + 1} ➔ Tầng ${rLevel} (Cột ${targetC + 1})`
+                    desc: `Tầng 1: Xe đang ở mặt đất, sẵn sàng nhận xe!`
                 });
             }
-        } else {
-            stepsQueue.push({
-                type: 'LOWER',
-                fromR: 0,
-                toR: 0,
-                c: targetC,
-                desc: `Tầng 1: Xe đang ở mặt đất, sẵn sàng nhận xe!`
-            });
-        }
 
-        const totalSteps = stepsQueue.length;
+            const totalSteps = stepsQueue.length;
 
-        // Execute Animation Queue
-        for (let i = 0; i < totalSteps; i++) {
-            const step = stepsQueue[i];
-            updateStatusText(step.desc, i + 1, totalSteps);
+            // Execute Animation Queue
+            for (let i = 0; i < totalSteps; i++) {
+                const step = stepsQueue[i];
+                updateStatusText(step.desc, i + 1, totalSteps);
 
-            if (step.type === 'SLIDE') {
-                activeMovingPos = { r: step.r, c: step.fromC };
-                renderGrid();
-                await new Promise(res => setTimeout(res, simSpeed * 0.4));
-
-                gridState[step.r][step.toC] = gridState[step.r][step.fromC];
-                gridState[step.r][step.fromC] = 'EMPTY';
-                
-                activeMovingPos = { r: step.r, c: step.toC };
-                renderGrid();
-            } else if (step.type === 'LOWER') {
-                if (step.fromR !== step.toR) {
-                    activeMovingPos = { r: step.fromR, c: step.c };
+                if (step.type === 'SLIDE') {
+                    activeMovingPos = { r: step.r, c: step.fromC };
                     renderGrid();
-                    await new Promise(res => setTimeout(res, simSpeed * 0.5));
+                    await new Promise(res => setTimeout(res, simSpeed * 0.4));
 
-                    // Swap slot down vertically
-                    const currentType = gridState[step.fromR][step.c];
-                    gridState[step.fromR][step.c] = 'EMPTY';
-                    gridState[step.toR][step.c] = currentType;
+                    gridState[step.r][step.toC] = gridState[step.r][step.fromC];
+                    gridState[step.r][step.fromC] = 'EMPTY';
                     
-                    // Move active target green indicator down along with it
-                    activeTargetPos = { r: step.toR, c: step.c };
-                    activeMovingPos = { r: step.toR, c: step.c };
+                    activeMovingPos = { r: step.r, c: step.toC };
                     renderGrid();
+                } else if (step.type === 'LOWER') {
+                    if (step.fromR !== step.toR) {
+                        activeMovingPos = { r: step.fromR, c: step.c };
+                        renderGrid();
+                        await new Promise(res => setTimeout(res, simSpeed * 0.5));
+
+                        const currentType = gridState[step.fromR][step.c];
+                        gridState[step.fromR][step.c] = 'EMPTY';
+                        gridState[step.toR][step.c] = currentType;
+                        
+                        activeTargetPos = { r: step.toR, c: step.c };
+                        activeMovingPos = { r: step.toR, c: step.c };
+                        renderGrid();
+                    }
                 }
+
+                updateAnalyticsAndCharts();
+                await new Promise(res => setTimeout(res, simSpeed * 0.5));
             }
 
+            // COMPLETION
+            gridState[0][targetC] = 'HAS_CAR';
+            
+            activeTargetPos = null;
+            activeMovingPos = null;
+            
+            renderGrid();
             updateAnalyticsAndCharts();
-            await new Promise(res => setTimeout(res, simSpeed * 0.5));
+
+            updateStatusText(`🎉 Hoàn tất! Ô tại Tầng 1 - Cột ${targetC + 1} đã tiếp đất và chuyển sang trạng thái CÓ XE.`);
+
+            isSimulating = false;
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
-
-        // COMPLETION: Reset the target slot to "HAS_CAR" (🚘 CÓ XE) on Ground Level
-        gridState[0][targetC] = 'HAS_CAR';
-        
-        // Remove active green highlight to restore normal light blue styling
-        activeTargetPos = null;
-        activeMovingPos = null;
-        
-        renderGrid();
-        updateAnalyticsAndCharts();
-
-        updateStatusText(`🎉 Hoàn tất! Ô tại Tầng 1 - Cột ${targetC + 1} đã tiếp đất và chuyển sang trạng thái CÓ XE.`);
-
-        isSimulating = false;
-        btn.disabled = false;
-        btn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
-</script>
+    </script>
+</body>
+</html>

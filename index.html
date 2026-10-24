@@ -18,7 +18,7 @@
 
         /* Card Base Styles */
         .parking-card {
-            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
             user-select: none;
         }
@@ -53,19 +53,19 @@
             color: #FFFFFF !important;
             border: 2px solid #1e8449 !important;
             box-shadow: 0 0 15px rgba(39, 174, 96, 0.5);
-            animation: pulse-green 2.8s infinite ease-in-out;
+            animation: pulse-green 1.5s infinite ease-in-out;
             z-index: 20;
         }
 
         .card-animating-slide {
-            animation: pulse-slide 2.8s infinite ease-in-out;
+            animation: pulse-slide 1.5s infinite ease-in-out;
             z-index: 10;
             border-color: #3B82F6 !important;
         }
 
         @keyframes pulse-green {
             0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.6); }
-            50% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(39, 174, 96, 0); }
+            50% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(39, 174, 96, 0); }
             100% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
         }
 
@@ -185,8 +185,8 @@
         const ROWS = 3;
         const COLS = 4;
         
-        // SLOW ANIMATION SPEED (~2.8s per step)
-        const simSpeed = 2800; 
+        // SPEED ADJUSTMENT: Tăng tốc độ mô phỏng (1100ms per step)
+        const simSpeed = 1100; 
         let isSimulating = false;
         let bestOptimalSlot = null;
 
@@ -279,24 +279,18 @@
             }
         }
 
-        // Calculate Steps and Scores Dynamic
+        // Calculate Steps and Scores
         function calculateMetrics() {
             const mode = document.getElementById('operatingMode').value;
             const vType = document.getElementById('vehicleType').value;
             const duration = parseFloat(document.getElementById('stayDuration').value) || 4.0;
             
-            // ĐIỀU CHỈNH TRỌNG SỐ THEO KHUNG GIỜ VẬN HÀNH
+            // Trọng số linh hoạt
             let w1, w2, w3;
             if (mode === 'PEAK') {
-                // GIỜ CAO ĐIỂM: Ưu tiên TỐC ĐỘ (giảm thiểu số bước w2)
-                w1 = 0.15; // Tải trọng
-                w2 = 0.70; // Số bước di chuyển (BẮT BUỘC TỐI ƯU SỐ BƯỚC)
-                w3 = 0.15; // Thời gian gửi (Bỏ qua việc ép tầng cao)
+                w1 = 0.20; w2 = 0.60; w3 = 0.20;
             } else {
-                // GIỜ THẤP ĐIỂM: Ưu tiên CẤU TRÚC BÃI (đưa xe gửi lâu lên cao w3) & TIẾT KIỆM NĂNG LƯỢNG (w1)
-                w1 = 0.35; // Tải trọng
-                w2 = 0.15; // Số bước di chuyển
-                w3 = 0.50; // Thời gian gửi (Ép xe gửi dài lên tầng cao)
+                w1 = 0.35; w2 = 0.20; w3 = 0.45;
             }
 
             const results = [];
@@ -304,6 +298,14 @@
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
                     if (gridState[r][c] === 'PICKUP') {
+
+                        // ============================================================
+                        // RÀNG BUỘC CỨNG (HARD CONSTRAINT): SUV CẤM TUYỆT ĐỐI TẦNG 3 (r = 2)
+                        // ============================================================
+                        if (vType === 'SUV' && r >= 2) {
+                            continue; // Bỏ qua không bao giờ chọn Tầng 3 cho SUV
+                        }
+
                         let steps = 0;
                         for (let rowBelow = 0; rowBelow < r; rowBelow++) {
                             const emptyCol = gridState[rowBelow].findIndex(st => st === 'EMPTY');
@@ -312,8 +314,8 @@
                             }
                         }
 
-                        // 1. Phạt Tải trọng
-                        let pSize = (vType === 'SUV') ? (r * 75) : (r * 10);
+                        // 1. Phạt Tải trọng: SUV phạt rất nặng ở Tầng 2 (r*150) để luôn ưu tiên Tầng 1
+                        let pSize = (vType === 'SUV') ? (r * 150) : (r * 10);
 
                         // 2. Phạt Số bước di chuyển
                         let pSteps = Math.min(100, steps * 25);
@@ -321,13 +323,12 @@
                         // 3. Phạt Thời gian gửi
                         let pTime = 0;
                         if (duration <= 2.0) {
-                            pTime = r * 30; // Gửi ngắn: Phạt tầng cao
+                            pTime = r * 30;
                         } else {
-                            // Gửi dài: Phạt tầng thấp theo tỉ lệ số giờ gửi
                             pTime = (2 - r) * 40 * (duration / 2);
                         }
 
-                        // Tổng điểm phạt (HÀM CẦN MINIMIZE)
+                        // Tổng điểm phạt
                         let pTotal = (w1 * pSize) + (w2 * pSteps) + (w3 * pTime);
 
                         results.push({
@@ -350,7 +351,7 @@
 
             if (data.length === 0) {
                 bestOptimalSlot = null;
-                document.getElementById('autoOptimalText').textContent = "Không có ô ĐÓN XE";
+                document.getElementById('autoOptimalText').textContent = "Không có ô ĐÓN XE phù hợp";
                 Plotly.purge('chartSteps');
                 Plotly.purge('chartObjective');
                 return;
@@ -416,12 +417,12 @@
             }
         }
 
-        // Simulation Loop
+        // Fast Simulation Loop
         async function startAutoOptimalSimulation() {
             if (isSimulating) return;
 
             if (!bestOptimalSlot) {
-                alert("Vui lòng nhấp đặt ít nhất 1 ô thành '🟨 ĐÓN XE'.");
+                alert("Không có ô ĐÓN XE phù hợp khả dụng.");
                 return;
             }
 
@@ -439,7 +440,7 @@
             const stepsQueue = [];
             const tempGrid = JSON.parse(JSON.stringify(gridState));
 
-            // BƯỚC 1: Slide các ô trống tầng dưới sang vị trí targetC để dọn đường
+            // BƯỚC 1: Slide các ô trống tầng dưới
             for (let r = 0; r < targetR; r++) {
                 const emptyC = tempGrid[r].findIndex(st => st === 'EMPTY');
                 if (emptyC !== -1 && emptyC !== targetC) {
@@ -461,7 +462,7 @@
                 }
             }
 
-            // BƯỚC 2: Hạ ô targetR xuống Tầng 1
+            // BƯỚC 2: Hạ khay nâng xuống Tầng 1
             if (targetR > 0) {
                 for (let rLevel = targetR; rLevel > 0; rLevel--) {
                     stepsQueue.push({
@@ -474,7 +475,7 @@
                 }
             }
 
-            // BƯỚC 3: Đổi trạng thái tại Tầng 1 thành "CÓ XE"
+            // BƯỚC 3: Đổi trạng thái tại Tầng 1
             stepsQueue.push({
                 type: 'RECEIVE_CAR',
                 r: 0,
@@ -482,7 +483,7 @@
                 desc: `Nạp xe thành công vào khay đỗ tại Tầng 1 - Cột ${targetC + 1}!`
             });
 
-            // BƯỚC 4: CHỈ NÂNG Ô ĐƯỢC CHỌN TRỞ LẠI TẦNG BAN ĐẦU (targetR)
+            // BƯỚC 4: Nâng ô được chọn về tầng ban đầu
             if (targetR > 0) {
                 for (let rLevel = 0; rLevel < targetR; rLevel++) {
                     stepsQueue.push({
@@ -497,7 +498,7 @@
 
             const totalSteps = stepsQueue.length;
 
-            // Chạy chuỗi chuyển động
+            // Chạy chuỗi chuyển động với tốc độ mới
             for (let i = 0; i < totalSteps; i++) {
                 const step = stepsQueue[i];
                 updateStatusText(step.desc, i + 1, totalSteps);
@@ -529,7 +530,7 @@
                     activeTargetPos = { r: 0, c: step.c };
                     renderGrid();
                     updateAnalyticsAndCharts();
-                    await new Promise(res => setTimeout(res, simSpeed * 0.8));
+                    await new Promise(res => setTimeout(res, simSpeed * 0.7));
                 } else if (step.type === 'RAISE') {
                     activeMovingPos = { r: step.fromR, c: step.c };
                     renderGrid();
@@ -545,7 +546,7 @@
                 }
 
                 updateAnalyticsAndCharts();
-                await new Promise(res => setTimeout(res, simSpeed * 0.5));
+                await new Promise(res => setTimeout(res, simSpeed * 0.4));
             }
 
             // HOÀN TẤT

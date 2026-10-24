@@ -18,7 +18,7 @@
 
         /* Card Base Styles */
         .parking-card {
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
             user-select: none;
         }
@@ -53,19 +53,19 @@
             color: #FFFFFF !important;
             border: 2px solid #1e8449 !important;
             box-shadow: 0 0 15px rgba(39, 174, 96, 0.5);
-            animation: pulse-green 1.5s infinite ease-in-out;
+            animation: pulse-green 2.0s infinite ease-in-out;
             z-index: 20;
         }
 
         .card-animating-slide {
-            animation: pulse-slide 1.5s infinite ease-in-out;
+            animation: pulse-slide 2.0s infinite ease-in-out;
             z-index: 10;
             border-color: #3B82F6 !important;
         }
 
         @keyframes pulse-green {
             0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.6); }
-            50% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(39, 174, 96, 0); }
+            50% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(39, 174, 96, 0); }
             100% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
         }
 
@@ -185,8 +185,8 @@
         const ROWS = 3;
         const COLS = 4;
         
-        // SPEED ADJUSTMENT: Tăng tốc độ mô phỏng (1100ms per step)
-        const simSpeed = 1100; 
+        // TỐC ĐỘ DI CHUYỂN: Chỉnh về 2000ms (2 giây/bước)
+        const simSpeed = 2000; 
         let isSimulating = false;
         let bestOptimalSlot = null;
 
@@ -303,7 +303,7 @@
                         // RÀNG BUỘC CỨNG (HARD CONSTRAINT): SUV CẤM TUYỆT ĐỐI TẦNG 3 (r = 2)
                         // ============================================================
                         if (vType === 'SUV' && r >= 2) {
-                            continue; // Bỏ qua không bao giờ chọn Tầng 3 cho SUV
+                            continue; // Bỏ qua Tầng 3 hoàn toàn khi xe là SUV
                         }
 
                         let steps = 0;
@@ -314,18 +314,23 @@
                             }
                         }
 
-                        // 1. Phạt Tải trọng: SUV phạt rất nặng ở Tầng 2 (r*150) để luôn ưu tiên Tầng 1
-                        let pSize = (vType === 'SUV') ? (r * 150) : (r * 10);
+                        // 1. Phạt Tải trọng: 
+                        // SUV phạt cực nặng ở Tầng 2 (r*1000) -> Bắt buộc luôn chọn Tầng 1 (Tầng thấp nhất)
+                        let pSize = (vType === 'SUV') ? (r * 1000) : (r * 10);
 
                         // 2. Phạt Số bước di chuyển
                         let pSteps = Math.min(100, steps * 25);
 
-                        // 3. Phạt Thời gian gửi
+                        // 3. Phạt Thời gian gửi (Dành cho Sedan)
                         let pTime = 0;
-                        if (duration <= 2.0) {
-                            pTime = r * 30;
+                        if (vType === 'SUV') {
+                            pTime = 0; // Thời gian gửi không ảnh hưởng vị trí SUV (bắt buộc đỗ tầng thấp)
                         } else {
-                            pTime = (2 - r) * 40 * (duration / 2);
+                            if (duration <= 2.0) {
+                                pTime = r * 30;
+                            } else {
+                                pTime = (2 - r) * 40 * (duration / 2);
+                            }
                         }
 
                         // Tổng điểm phạt
@@ -417,7 +422,7 @@
             }
         }
 
-        // Fast Simulation Loop
+        // Simulation Loop
         async function startAutoOptimalSimulation() {
             if (isSimulating) return;
 
@@ -498,7 +503,7 @@
 
             const totalSteps = stepsQueue.length;
 
-            // Chạy chuỗi chuyển động với tốc độ mới
+            // Chạy chuỗi chuyển động với simSpeed = 2000ms
             for (let i = 0; i < totalSteps; i++) {
                 const step = stepsQueue[i];
                 updateStatusText(step.desc, i + 1, totalSteps);
